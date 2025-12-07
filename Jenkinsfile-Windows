@@ -2,9 +2,11 @@ pipeline {
     agent any
 
     environment {
-        // CE CHEMIN FONCTIONNE CHEZ VOUS, NE LE TOUCHEZ PLUS !
-        GLOBAL_PYTHON = "C:\\Program Files\\Python314\\python.exe"
+        // --- LA LIGNE MAGIQUE POUR GARDER L'APP EN VIE ---
+        BUILD_ID = "dontKillMe"
         
+        // Vos autres variables (ne changez pas votre chemin Python qui marche !)
+        GLOBAL_PYTHON = "C:\\Program Files\\Python314\\python.exe"
         VENV_DIR = ".venv"
         HOST = "0.0.0.0"
         PORT = "5000"
@@ -12,6 +14,7 @@ pipeline {
     }
 
     stages {
+        // ... (Gardez les étapes Checkout, Setup, Test identiques) ...
         stage('Checkout') {
             steps {
                 git branch: 'main',
@@ -23,19 +26,9 @@ pipeline {
         stage('Setup Virtual Environment') {
             steps {
                 bat """
-                    echo 1. Verification Python...
-                    "%GLOBAL_PYTHON%" --version
-                    
-                    echo 2. Creation venv...
                     "%GLOBAL_PYTHON%" -m venv ${VENV_DIR}
-                    
-                    echo 3. Installation pip...
                     ${VENV_DIR}\\Scripts\\python.exe -m pip install --upgrade pip
-                    
-                    echo 4. Requirements...
                     ${VENV_DIR}\\Scripts\\pip.exe install -r requirements.txt
-                    
-                    echo 5. Waitress...
                     ${VENV_DIR}\\Scripts\\pip.exe install waitress
                 """
             }
@@ -43,36 +36,24 @@ pipeline {
 
         stage('Run Tests') {
             steps {
-                bat """
-                    echo Tests...
-                    ${VENV_DIR}\\Scripts\\python.exe -m pytest
-                """
+                bat "${VENV_DIR}\\Scripts\\python.exe -m pytest"
             }
         }
 
         stage('Deploy (Local with Waitress)') {
             steps {
-                echo 'Demarrage de l application Flask avec Waitress...'
+                echo 'Demarrage de l application Flask...'
                 bat """
-                    echo --- Lancement du serveur en arriere-plan ---
+                    echo Lancement persistant...
                     start /B ${VENV_DIR}\\Scripts\\waitress-serve.exe --listen=${HOST}:${PORT} ${APP_MODULE} > deploy.log 2>&1
                     
-                    echo --- Pause de 5 secondes (Version Python sans erreur) ---
+                    echo Pause pour demarrage...
                     "%GLOBAL_PYTHON%" -c "import time; time.sleep(5)"
                 """
             }
         }
     }
-    
     post {
-        always {
-            echo "Pipeline termine."
-        }
-        success {
-            echo "✅ SUCCES : Tout est vert ! Allez sur http://localhost:5000"
-        }
-        failure {
-            echo "❌ ECHEC : Regardez les logs."
-        }
+        success { echo "Tout est vert ! Testez http://localhost:5000" }
     }
 }
