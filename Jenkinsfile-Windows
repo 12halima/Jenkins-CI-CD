@@ -5,7 +5,7 @@ pipeline {
         // --- MODIFICATION 1 : CHEMIN ABSOLU VERS PYTHON ---
         // Remplacez le chemin ci-dessous par VOTRE chemin (obtenu via 'where python')
         // Gardez les doubles backslash \\
-        PYTHON_HOME = "C:\\Users\\HP\\AppData\\Local\\Microsoft\\WindowsApps"
+        PYTHON_HOME = "C:\\Users\\HP\\AppData\\Local\\Microsoft\\WindowsApps\\python.exe"
 
         
         // On injecte ce chemin dans le PATH de Jenkins pour qu'il trouve 'python' et 'pip'
