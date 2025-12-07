@@ -8,7 +8,7 @@ pipeline {
         // 2. Copiez le chemin complet (ex: C:\Users\Halima\...\python.exe)
         // 3. Collez-le ci-dessous en GARDANT les doubles backslashs (\\)
         // ====================================================================
-        GLOBAL_PYTHON = "C:\\Users\\HP\\AppData\\Local\\Microsoft\\WindowsApps\\python.exe"
+        GLOBAL_PYTHON = "C:\\Program Files\\Python314\\python.exe"
         
         // Variables de configuration
         VENV_DIR = ".venv"
