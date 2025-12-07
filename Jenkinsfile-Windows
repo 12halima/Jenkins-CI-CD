@@ -2,15 +2,9 @@ pipeline {
     agent any
 
     environment {
-        // ====================================================================
-        // 🛑 MODIFIEZ CETTE LIGNE AVEC VOTRE CHEMIN PYTHON 🛑
-        // 1. Ouvrez cmd, tapez 'where python'
-        // 2. Copiez le chemin complet (ex: C:\Users\Halima\...\python.exe)
-        // 3. Collez-le ci-dessous en GARDANT les doubles backslashs (\\)
-        // ====================================================================
+        // CE CHEMIN FONCTIONNE CHEZ VOUS, NE LE TOUCHEZ PLUS !
         GLOBAL_PYTHON = "C:\\Program Files\\Python314\\python.exe"
         
-        // Variables de configuration
         VENV_DIR = ".venv"
         HOST = "0.0.0.0"
         PORT = "5000"
@@ -20,7 +14,6 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                // Récupération du code
                 git branch: 'main',
                     url: 'https://github.com/12halima/Jenkins-CI-CD.git',
                     credentialsId: 'github-token'
@@ -30,31 +23,28 @@ pipeline {
         stage('Setup Virtual Environment') {
             steps {
                 bat """
-                    echo --- 1. Verification du chemin Python fourni ---
+                    echo 1. Verification Python...
                     "%GLOBAL_PYTHON%" --version
                     
-                    echo --- 2. Creation de l'environnement virtuel ---
+                    echo 2. Creation venv...
                     "%GLOBAL_PYTHON%" -m venv ${VENV_DIR}
                     
-                    echo --- 3. Mise a jour de PIP (Interne au venv) ---
+                    echo 3. Installation pip...
                     ${VENV_DIR}\\Scripts\\python.exe -m pip install --upgrade pip
                     
-                    echo --- 4. Installation des dependances ---
+                    echo 4. Requirements...
                     ${VENV_DIR}\\Scripts\\pip.exe install -r requirements.txt
                     
-                    echo --- 5. Installation de Waitress (Serveur Windows) ---
+                    echo 5. Waitress...
                     ${VENV_DIR}\\Scripts\\pip.exe install waitress
                 """
             }
         }
 
         stage('Run Tests') {
-            // Exécution conditionnelle (Optionnel, désactivé ici pour forcer le test)
-            // when { not { changeset "README.md" } }
-            
             steps {
                 bat """
-                    echo --- Execution des tests avec Pytest ---
+                    echo Tests...
                     ${VENV_DIR}\\Scripts\\python.exe -m pytest
                 """
             }
@@ -67,8 +57,8 @@ pipeline {
                     echo --- Lancement du serveur en arriere-plan ---
                     start /B ${VENV_DIR}\\Scripts\\waitress-serve.exe --listen=${HOST}:${PORT} ${APP_MODULE} > deploy.log 2>&1
                     
-                    echo --- Pause de 5 secondes pour laisser le serveur demarrer ---
-                    timeout /t 5
+                    echo --- Pause de 5 secondes (Version Python sans erreur) ---
+                    "%GLOBAL_PYTHON%" -c "import time; time.sleep(5)"
                 """
             }
         }
@@ -79,18 +69,10 @@ pipeline {
             echo "Pipeline termine."
         }
         success {
-            echo "✅ SUCCES : L'application est deployée (testez http://localhost:5000)"
-            // Décommentez ci-dessous une fois le SMTP configuré
-            /*
-            emailext (
-                to: "halimakali57@gmail.com",
-                subject: "Succès Build Jenkins",
-                body: "Le build a réussi !"
-            )
-            */
+            echo "✅ SUCCES : Tout est vert ! Allez sur http://localhost:5000"
         }
         failure {
-            echo "❌ ECHEC : Verifiez les logs."
+            echo "❌ ECHEC : Regardez les logs."
         }
     }
 }
