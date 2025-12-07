@@ -2,6 +2,15 @@ pipeline {
     agent any
 
     environment {
+        // --- MODIFICATION 1 : CHEMIN ABSOLU VERS PYTHON ---
+        // Remplacez le chemin ci-dessous par VOTRE chemin (obtenu via 'where python')
+        // Gardez les doubles backslash \\
+        PYTHON_HOME = "C:\\Users\\HP\\AppData\\Local\\Microsoft\\WindowsApps"
+
+        
+        // On injecte ce chemin dans le PATH de Jenkins pour qu'il trouve 'python' et 'pip'
+        PATH = "${PYTHON_HOME};${PYTHON_HOME}\\Scripts;${env.PATH}"
+
         GITHUB_TOKEN = credentials('github-token')
         VENV_DIR = ".venv"
         HOST = "0.0.0.0"
@@ -12,6 +21,8 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
+                // Si l'erreur "github-token not found" revient, supprimez la ligne credentialsId
+                // si votre dépôt est public.
                 git branch: 'main',
                     url: 'https://github.com/12halima/Jenkins-CI-CD.git',
                     credentialsId: 'github-token'
@@ -21,19 +32,26 @@ pipeline {
         stage('Setup Virtual Environment') {
             steps {
                 bat """
+                echo Verification version Python...
+                python --version
+                
+                echo Creation venv...
                 python -m venv ${VENV_DIR}
+                
+                echo Activation et Installation...
                 call ${VENV_DIR}\\Scripts\\activate
                 python -m pip install --upgrade pip
                 pip install -r requirements.txt
+                
+                REM --- MODIFICATION 2 : INSTALLER WAITRESS (Pour Windows) ---
+                pip install waitress
                 """
             }
         }
 
         stage('Run Tests') {
             when {
-                not {
-                    changeset "README.md"
-                }
+                not { changeset "README.md" }
             }
             parallel {
                 stage('Test File 1') {
@@ -46,6 +64,7 @@ pipeline {
                 }
                 stage('Test File 2') {
                     steps {
+                        // Assurez-vous que le fichier test_app_2.py existe bien dans votre dépôt !
                         bat """
                         call ${VENV_DIR}\\Scripts\\activate
                         python -m pytest test_app_2.py -v
@@ -55,47 +74,37 @@ pipeline {
             }
         }
 
-        stage('Deploy (Local with Gunicorn)') {
+        stage('Deploy (Local with Waitress)') {
             steps {
-                echo 'Starting Flask app locally using Gunicorn...'
+                echo 'Starting Flask app locally using Waitress (Windows compatible)...'
                 bat """
                 call ${VENV_DIR}\\Scripts\\activate
-                start /B gunicorn --bind ${HOST}:${PORT} ${APP_MODULE} > gunicorn.log 2>&1
-                echo ✅ Gunicorn started on http://${HOST}:${PORT}
+                
+                REM --- MODIFICATION 3 : UTILISATION DE WAITRESS AU LIEU DE GUNICORN ---
+                REM start /B lance le processus en arrière-plan
+                start /B waitress-serve --listen=${HOST}:${PORT} ${APP_MODULE} > deploy.log 2>&1
+                
+                echo ✅ Server started on http://${HOST}:${PORT}
+                timeout /t 5
                 """
             }
         }
     }
 
     post {
+        // J'ai commenté l'email temporairement pour que votre build passe au VERT.
+        // Une fois que le build marche, décommentez et configurez le SMTP dans Jenkins.
+        always {
+            echo "Build terminé. Configurer SMTP pour activer les mails."
+        }
+        /*
         success {
             emailext(
-                to: "EMAIL_TO_PLACEHOLDER",
-                from: "EMAIL_FROM_PLACEHOLDER",
-                replyTo: "EMAIL_REPLY_PLACEHOLDER",
-                subject: "✅ SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                mimeType: 'text/html',
-                body: """\
-                <p>Good news!</p>
-                <p>Build <b>${env.JOB_NAME} #${env.BUILD_NUMBER}</b> succeeded.</p>
-                <p>Check details: <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
-                """
+                to: "halimakali57@gmail.com", 
+                subject: "✅ SUCCESS: ${env.JOB_NAME}",
+                body: "Build reussi !"
             )
         }
-
-        failure {
-            emailext(
-                to: "EMAIL_TO_PLACEHOLDER",
-                from: "EMAIL_FROM_PLACEHOLDER",
-                replyTo: "EMAIL_REPLY_PLACEHOLDER",
-                subject: "❌ FAILURE: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                mimeType: 'text/html',
-                body: """\
-                <p>Uh oh...</p>
-                <p>Build <b>${env.JOB_NAME} #${env.BUILD_NUMBER}</b> failed.</p>
-                <p>Check logs: <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
-                """
-            )
-        }
+        */
     }
 }
