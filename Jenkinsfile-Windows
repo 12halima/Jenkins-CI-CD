@@ -2,27 +2,25 @@ pipeline {
     agent any
 
     environment {
-        // --- MODIFICATION 1 : CHEMIN ABSOLU VERS PYTHON ---
-        // Remplacez le chemin ci-dessous par VOTRE chemin (obtenu via 'where python')
-        // Gardez les doubles backslash \\
-        PYTHON_HOME = "C:\\Users\\HP\\AppData\\Local\\Microsoft\\WindowsApps\\python.exe"
-
+        // ====================================================================
+        // 🛑 MODIFIEZ CETTE LIGNE AVEC VOTRE CHEMIN PYTHON 🛑
+        // 1. Ouvrez cmd, tapez 'where python'
+        // 2. Copiez le chemin complet (ex: C:\Users\Halima\...\python.exe)
+        // 3. Collez-le ci-dessous en GARDANT les doubles backslashs (\\)
+        // ====================================================================
+        GLOBAL_PYTHON = "C:\\Users\\HP\\AppData\\Local\\Microsoft\\WindowsApps\\python.exe"
         
-        // On injecte ce chemin dans le PATH de Jenkins pour qu'il trouve 'python' et 'pip'
-        PATH = "${PYTHON_HOME};${PYTHON_HOME}\\Scripts;${env.PATH}"
-
-        GITHUB_TOKEN = credentials('github-token')
+        // Variables de configuration
         VENV_DIR = ".venv"
         HOST = "0.0.0.0"
         PORT = "5000"
-        APP_MODULE = "app:app"  
+        APP_MODULE = "app:app"
     }
 
     stages {
         stage('Checkout') {
             steps {
-                // Si l'erreur "github-token not found" revient, supprimez la ligne credentialsId
-                // si votre dépôt est public.
+                // Récupération du code
                 git branch: 'main',
                     url: 'https://github.com/12halima/Jenkins-CI-CD.git',
                     credentialsId: 'github-token'
@@ -32,79 +30,67 @@ pipeline {
         stage('Setup Virtual Environment') {
             steps {
                 bat """
-                echo Verification version Python...
-                python --version
-                
-                echo Creation venv...
-                python -m venv ${VENV_DIR}
-                
-                echo Activation et Installation...
-                call ${VENV_DIR}\\Scripts\\activate
-                python -m pip install --upgrade pip
-                pip install -r requirements.txt
-                
-                REM --- MODIFICATION 2 : INSTALLER WAITRESS (Pour Windows) ---
-                pip install waitress
+                    echo --- 1. Verification du chemin Python fourni ---
+                    "%GLOBAL_PYTHON%" --version
+                    
+                    echo --- 2. Creation de l'environnement virtuel ---
+                    "%GLOBAL_PYTHON%" -m venv ${VENV_DIR}
+                    
+                    echo --- 3. Mise a jour de PIP (Interne au venv) ---
+                    ${VENV_DIR}\\Scripts\\python.exe -m pip install --upgrade pip
+                    
+                    echo --- 4. Installation des dependances ---
+                    ${VENV_DIR}\\Scripts\\pip.exe install -r requirements.txt
+                    
+                    echo --- 5. Installation de Waitress (Serveur Windows) ---
+                    ${VENV_DIR}\\Scripts\\pip.exe install waitress
                 """
             }
         }
 
         stage('Run Tests') {
-            when {
-                not { changeset "README.md" }
-            }
-            parallel {
-                stage('Test File 1') {
-                    steps {
-                        bat """
-                        call ${VENV_DIR}\\Scripts\\activate
-                        python -m pytest test_app.py -v
-                        """
-                    }
-                }
-                stage('Test File 2') {
-                    steps {
-                        // Assurez-vous que le fichier test_app_2.py existe bien dans votre dépôt !
-                        bat """
-                        call ${VENV_DIR}\\Scripts\\activate
-                        python -m pytest test_app_2.py -v
-                        """
-                    }
-                }
+            // Exécution conditionnelle (Optionnel, désactivé ici pour forcer le test)
+            // when { not { changeset "README.md" } }
+            
+            steps {
+                bat """
+                    echo --- Execution des tests avec Pytest ---
+                    ${VENV_DIR}\\Scripts\\python.exe -m pytest
+                """
             }
         }
 
         stage('Deploy (Local with Waitress)') {
             steps {
-                echo 'Starting Flask app locally using Waitress (Windows compatible)...'
+                echo 'Demarrage de l application Flask avec Waitress...'
                 bat """
-                call ${VENV_DIR}\\Scripts\\activate
-                
-                REM --- MODIFICATION 3 : UTILISATION DE WAITRESS AU LIEU DE GUNICORN ---
-                REM start /B lance le processus en arrière-plan
-                start /B waitress-serve --listen=${HOST}:${PORT} ${APP_MODULE} > deploy.log 2>&1
-                
-                echo ✅ Server started on http://${HOST}:${PORT}
-                timeout /t 5
+                    echo --- Lancement du serveur en arriere-plan ---
+                    start /B ${VENV_DIR}\\Scripts\\waitress-serve.exe --listen=${HOST}:${PORT} ${APP_MODULE} > deploy.log 2>&1
+                    
+                    echo --- Pause de 5 secondes pour laisser le serveur demarrer ---
+                    timeout /t 5
                 """
             }
         }
     }
-
+    
     post {
-        // J'ai commenté l'email temporairement pour que votre build passe au VERT.
-        // Une fois que le build marche, décommentez et configurez le SMTP dans Jenkins.
         always {
-            echo "Build terminé. Configurer SMTP pour activer les mails."
+            echo "Pipeline termine."
         }
-        /*
         success {
-            emailext(
-                to: "halimakali57@gmail.com", 
-                subject: "✅ SUCCESS: ${env.JOB_NAME}",
-                body: "Build reussi !"
+            echo "✅ SUCCES : L'application est deployée (testez http://localhost:5000)"
+            // Décommentez ci-dessous une fois le SMTP configuré
+            /*
+            emailext (
+                to: "halimakali57@gmail.com",
+                subject: "Succès Build Jenkins",
+                body: "Le build a réussi !"
             )
+            */
         }
-        */
+        failure {
+            echo "❌ ECHEC : Verifiez les logs."
+        }
     }
 }
