@@ -41,12 +41,21 @@ pipeline {
             }
         }
 
+
         stage('Run Tests') {
-            steps {
-                bat "${VENV_DIR}\\Scripts\\python.exe -m pytest"
+            parallel {
+                stage('Test Lot 1') {
+                    steps {
+                        bat "${VENV_DIR}\\Scripts\\python.exe -m pytest test_app.py"
+                    }
+                }
+                stage('Test Lot 2') {
+                    steps {
+                        bat "${VENV_DIR}\\Scripts\\python.exe -m pytest test_app_2.py"
+                    }
+                }
             }
         }
-
         stage('Deploy (Local with Waitress)') {
             steps {
                 echo 'Demarrage de l application Flask...'
