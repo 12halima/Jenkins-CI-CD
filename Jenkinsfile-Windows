@@ -43,6 +43,9 @@ pipeline {
 
 
         stage('Run Tests') {
+            when {
+                not { changeset 'README.md' }
+            }
             parallel {
                 stage('Test Lot 1') {
                     steps {
