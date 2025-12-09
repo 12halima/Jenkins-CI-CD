@@ -1,6 +1,13 @@
 pipeline {
     agent any
-
+    // --- AJOUT DE LA PARTIE 5 : TRIGGERS ---
+    triggers {
+        // 1. Cron Job : Lancer le build toutes les 5 minutes (si changement détecté)
+        cron('H/5 * * * *')
+        
+        // 2. Webhook : Attendre que GitHub prévienne Jenkins d'un changement
+        githubPush()
+    }
     environment {
         // --- LA LIGNE MAGIQUE POUR GARDER L'APP EN VIE ---
         BUILD_ID = "dontKillMe"
