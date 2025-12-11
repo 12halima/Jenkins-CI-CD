@@ -72,20 +72,5 @@ pipeline {
             }
         }
     }
-    post {
-        success {
-            emailext (
-                to: "mon.email@gmail.com",
-                subject: "✅ SUCCES : Build ${env.BUILD_NUMBER}",
-                body: "Le déploiement a réussi. URL : ${env.BUILD_URL}"
-            )
-        }
-        failure {
-            emailext (
-                to: "mon.email@gmail.com",
-                subject: "❌ ECHEC : Build ${env.BUILD_NUMBER}",
-                body: "Le build a échoué. Vérifiez les logs."
-            )
-        }
-    }
+
 }
